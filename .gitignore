@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node modules & builds
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# SQLite databases & uploads
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+server/data/
+server/uploads/
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

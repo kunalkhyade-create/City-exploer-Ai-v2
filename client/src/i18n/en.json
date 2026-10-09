@@ -1,0 +1,59 @@
+{
+  "app_title": "CITYPULSE AI",
+  "tagline": "Plan around the city's pulse.",
+  "demo_city": "Pune, India",
+  "demo_badge": "DEMO DATA",
+  "safety_disclaimer": "No reports in our data; not a safety guarantee.",
+  "typical_pattern_note": "Typical pattern (model, not live)",
+  "nav": {
+    "explore": "Explore Pune",
+    "planner": "Pulse Planner",
+    "report": "Report Hazard",
+    "data_sources": "Data Sources",
+    "saved": "Saved Places",
+    "admin": "Moderator Portal"
+  },
+  "prompt": {
+    "placeholder": "e.g., Plan my afternoon in Pune for ₹500 near FC Road with street food and walking...",
+    "btn_generate": "Generate Plan",
+    "btn_replan": "Plan B (Replan)",
+    "quick_1": "Heritage walk under ₹300",
+    "quick_2": "FC Road evening street food",
+    "quick_3": "Peaceful afternoon nature trail",
+    "ai_live": "AI Engine (Gemini)",
+    "ai_local": "AI unavailable, using local engine"
+  },
+  "filters": {
+    "budget": "Budget (INR)",
+    "hours": "Duration (Hours)",
+    "travel_mode": "Transit Mode",
+    "walking": "Walking",
+    "cycling": "Cycling",
+    "driving": "Driving / Auto",
+    "pace": "Pace",
+    "relaxed": "Relaxed",
+    "moderate": "Moderate",
+    "packed": "Packed",
+    "step_free": "Step-free wheelchair access required"
+  },
+  "itinerary": {
+    "arrival": "Arrival",
+    "depart": "Depart",
+    "est_cost": "Est. Cost",
+    "why_this": "Why This Stop?",
+    "crowd_trend": "Hourly Crowd Profile",
+    "transit": "Transit Leg",
+    "save_stop": "Bookmark",
+    "share_whatsapp": "Share via WhatsApp"
+  },
+  "report_modal": {
+    "title": "Submit Pune Citizen Hazard Report",
+    "disclaimer": "All submissions undergo moderation before verification. PII is automatically redacted.",
+    "field_title": "Hazard Title",
+    "field_desc": "Description (Include landmarks)",
+    "field_category": "Category",
+    "photo_label": "Upload Photo (Max 5 MB)",
+    "audio_label": "Upload Voice Note (Max 8 MB)",
+    "btn_submit": "Submit Report"
+  }
+}
