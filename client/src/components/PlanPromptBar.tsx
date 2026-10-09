@@ -36,10 +36,10 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!promptText.trim()) return;
+    const effectivePrompt = promptText.trim() || `Explore best of ${cityName}`;
 
     if (showFilters) {
-      onGeneratePlan(promptText, {
+      onGeneratePlan(effectivePrompt, {
         budget_inr: budget,
         hours,
         interests,
@@ -49,7 +49,7 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
         start_location: startLocation,
       });
     } else {
-      onGeneratePlan(promptText);
+      onGeneratePlan(effectivePrompt);
     }
   };
 
@@ -111,8 +111,8 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
           </button>
           <button
             type="submit"
-            disabled={isLoading || !promptText.trim()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm shadow-md transition disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
               <span className="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />

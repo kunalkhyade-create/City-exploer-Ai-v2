@@ -170,29 +170,46 @@ export const App: React.FC = () => {
   ) => {
     setIsGenerating(true);
     try {
+      const effectivePrompt = (promptText || '').trim() || `Explore best of ${currentCity}`;
+      let parsedConstraints: GeneratedPlan['constraintsUsed'];
+
+      try {
+        const parsed = await api.parsePrompt(effectivePrompt);
+        parsedConstraints = parsed.constraints;
+        setAiSource(parsed.source);
+      } catch {
+        parsedConstraints = {
+          budget_inr: 600,
+          hours: 4,
+          interests: ['heritage', 'street food'],
+          travel_mode: 'foot-walking',
+          pace: 'moderate',
+          accessibility: [],
+          mood: 'curious',
+          group_size: 1,
+          start_location: 'Central Downtown',
+          city: currentCity,
+        };
+        setAiSource('local');
+      }
+
       let constraints: GeneratedPlan['constraintsUsed'];
 
       if (customConstraints && Object.keys(customConstraints).length > 0) {
-        // Use custom overrides merged with defaults
-        const parsed = await api.parsePrompt(promptText);
         constraints = {
-          ...parsed.constraints,
+          ...parsedConstraints,
           ...customConstraints,
           city: currentCity,
         };
-        setAiSource(parsed.source);
       } else {
-        const parsed = await api.parsePrompt(promptText);
-        // Merge with saved passport preferences if available
         constraints = {
-          ...parsed.constraints,
+          ...parsedConstraints,
           city: currentCity,
-          budget_inr: passport?.budget_inr || parsed.constraints.budget_inr,
-          travel_mode: passport?.travel_mode || parsed.constraints.travel_mode,
-          pace: passport?.pace || parsed.constraints.pace,
-          accessibility: passport?.accessibility?.length ? passport.accessibility : parsed.constraints.accessibility,
+          budget_inr: passport?.budget_inr || parsedConstraints.budget_inr,
+          travel_mode: passport?.travel_mode || parsedConstraints.travel_mode,
+          pace: passport?.pace || parsedConstraints.pace,
+          accessibility: passport?.accessibility?.length ? passport.accessibility : parsedConstraints.accessibility,
         };
-        setAiSource(parsed.source);
       }
 
       const plan = await api.generatePlan({
@@ -201,6 +218,9 @@ export const App: React.FC = () => {
         startTime: '10:00',
       });
 
+      if (plan.aiSource) {
+        setAiSource(plan.aiSource);
+      }
       setCurrentPlan(plan);
       showToast(`Generated: ${plan.title} (${plan.stops.length} stops in ${plan.city})`);
     } catch (err: any) {

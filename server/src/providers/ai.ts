@@ -29,6 +29,14 @@ export interface WhyThisExplanation {
   explanation: string;
 }
 
+export interface GeminiPlanSynthesis {
+  title: string;
+  tagline: string;
+  curatorNote: string;
+  selectedPlaceIds: string[];
+  reasons: Record<string, string>;
+}
+
 export interface ReportAiClassification {
   category: 'waterlogging' | 'road work' | 'poor lighting' | 'closure' | 'traffic choke' | 'general';
   summary: string;
@@ -346,5 +354,65 @@ Return JSON only.`;
     } catch {
       return { category, summary, urgency, source: 'local' };
     }
+  },
+
+  async synthesizePlan(
+    places: Array<{ id: string; name: string; category: string; indicative_price_inr: number; visit_minutes: number; step_free: boolean; description: string }>,
+    constraints: PlanConstraints,
+    weatherSummary: string,
+    lang: 'en' | 'hi' | 'mr' = 'en'
+  ): Promise<GeminiPlanSynthesis | null> {
+    if (!env.GEMINI_API_KEY) {
+      return null;
+    }
+
+    const simplifiedPlaces = places.slice(0, 30).map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      cost_inr: p.indicative_price_inr,
+      minutes: p.visit_minutes,
+      step_free: p.step_free,
+      description: p.description.slice(0, 100),
+    }));
+
+    const systemPrompt = `You are CityPulse AI, an expert urban travel curator.
+Curate an optimal itinerary sequence from the available places matching the traveler's constraints.
+Available places: ${JSON.stringify(simplifiedPlaces)}
+Traveler constraints: Budget: ₹${constraints.budget_inr}, Duration: ${constraints.hours} hours, Interests: ${constraints.interests.join(', ')}, Travel mode: ${constraints.travel_mode}, Pace: ${constraints.pace}, Accessibility: ${constraints.accessibility.join(', ')}.
+Weather condition: ${weatherSummary}. Destination City: ${constraints.city || 'Pune'}. Language: ${lang}.
+
+Select a logical sequence of 2 to 6 place IDs that stay within total time and budget.
+Return JSON strictly matching:
+{
+  "title": string (an evocative, stylish journey title),
+  "tagline": string (a short captivating tagline for this adventure),
+  "curatorNote": string (2 sentences on why this sequence is optimal),
+  "selectedPlaceIds": string[] (ordered array of place IDs from the provided list),
+  "reasons": { [placeId: string]: string (1 concise sentence why this specific stop fits) }
+}`;
+
+    try {
+      const rawJson = await callGemini(systemPrompt, `Curate itinerary for ${constraints.city || 'Pune'}`);
+      const parsed = JSON.parse(stripCodeFences(rawJson));
+      if (parsed.selectedPlaceIds && Array.isArray(parsed.selectedPlaceIds) && parsed.selectedPlaceIds.length > 0) {
+        // Validate that IDs actually exist in places
+        const validIds = parsed.selectedPlaceIds.filter((id: string) => places.some(p => p.id === id));
+        if (validIds.length >= 2) {
+          registry.recordSuccess('AIProvider (Gemini Plan)', 'live');
+          return {
+            title: parsed.title || `${constraints.interests.join(' & ')} Trail`,
+            tagline: parsed.tagline || 'Plan around the city\'s pulse.',
+            curatorNote: parsed.curatorNote || '',
+            selectedPlaceIds: validIds,
+            reasons: parsed.reasons || {},
+          };
+        }
+      }
+    } catch (err) {
+      logger.warn(`Gemini plan synthesis failed, defaulting to local engine: ${err}`);
+      registry.recordError('AIProvider (Gemini Plan)', String(err));
+    }
+    return null;
   },
 };

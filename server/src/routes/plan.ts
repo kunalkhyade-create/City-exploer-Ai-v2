@@ -9,7 +9,7 @@ import { planGenerationLimiter } from '../middleware/rateLimiter.js';
 const router = Router();
 
 const parseRequestSchema = z.object({
-  text: z.string().min(3, 'Trip description must be at least 3 characters'),
+  text: z.string().optional().default('Explore highlights in the city'),
 });
 
 const generateRequestSchema = z.object({
@@ -33,7 +33,8 @@ const compareRequestSchema = z.object({
 // POST /api/plan/parse
 router.post('/parse', planGenerationLimiter, async (req, res, next) => {
   try {
-    const { text } = parseRequestSchema.parse(req.body);
+    const rawText = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+    const text = rawText.length >= 3 ? rawText : 'Explore highlights in the city';
     const parsed = await aiProvider.parseConstraints(text);
     res.json(parsed);
   } catch (err) {

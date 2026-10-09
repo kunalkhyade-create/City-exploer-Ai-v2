@@ -86,6 +86,7 @@ export const planner = {
     // 3. Fetch weather for target city coordinates
     const weather = await weatherProvider.getWeather(currentLocation.lat, currentLocation.lng);
     const rainProbs = weather.rain_probability_12h || [];
+    const weatherSummary = weather.available ? `${weather.condition}, ${weather.temperature_c}°C` : 'Weather unavailable';
 
     // Parse start time
     const [startHStr, startMStr] = startTimeStr.split(':');
@@ -102,99 +103,192 @@ export const planner = {
     const routeLegs: RouteResult[] = [];
 
     let stopOrder = 1;
+    let planTitle = `${constraints.interests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(' & ')} Journey`;
+    let planTagline = 'Plan around the city\'s pulse.';
+    let planAiSource: 'gemini' | 'local' = 'local';
 
-    while (remainingMinutes > 35 && visitedIds.size < allPlaces.length) {
-      // Score all unvisited candidates
-      const scoredCandidates = allPlaces
-        .filter(p => !visitedIds.has(p.id))
-        .map(p => {
-          const rainProb = rainProbs[currentHour % 12] || 0;
-          return scorePlaceCandidate(
-            p,
-            currentLocation,
-            currentHour,
-            remainingBudget,
-            constraints,
-            hazardRows,
-            rainProb
-          );
-        })
-        .filter((c): c is NonNullable<typeof c> => c !== null)
-        .sort((a, b) => b.compositeScore - a.compositeScore);
+    // Attempt Gemini AI Plan Synthesis
+    const geminiSynthesis = await aiProvider.synthesizePlan(allPlaces, constraints, weatherSummary, lang);
 
-      if (scoredCandidates.length === 0) {
-        break; // No more reachable or eligible places
+    if (geminiSynthesis && geminiSynthesis.selectedPlaceIds.length >= 2) {
+      planTitle = geminiSynthesis.title;
+      planTagline = geminiSynthesis.tagline;
+      planAiSource = 'gemini';
+
+      for (const placeId of geminiSynthesis.selectedPlaceIds) {
+        const place = allPlaces.find(p => p.id === placeId);
+        if (!place || visitedIds.has(place.id)) continue;
+
+        const dwellMinutes = Math.max(30, Math.round(place.visit_minutes * paceMultiplier));
+        const route = await routingProvider.getRoute(
+          currentLocation,
+          { lat: place.lat, lng: place.lng },
+          constraints.travel_mode
+        );
+
+        const legTime = route.duration_minutes;
+        const legCost = place.indicative_price_inr;
+
+        if (stops.length >= 2 && (legTime + dwellMinutes > remainingMinutes || legCost > remainingBudget)) {
+          break;
+        }
+
+        const arrivalMinutesTotal = currentHour * 60 + currentMinute + legTime;
+        const arrivalHour = Math.floor(arrivalMinutesTotal / 60) % 24;
+        const arrivalMin = arrivalMinutesTotal % 60;
+        const arrivalTimeStr = formatTime(arrivalHour, arrivalMin);
+
+        const departureMinutesTotal = arrivalMinutesTotal + dwellMinutes;
+        const departureHour = Math.floor(departureMinutesTotal / 60) % 24;
+        const departureMin = departureMinutesTotal % 60;
+        const departureTimeStr = formatTime(departureHour, departureMin);
+
+        const whyThis = geminiSynthesis.reasons[place.id] ||
+          await aiProvider.generateWhyThis(place.name, place.category, place.hourly_crowd[arrivalHour] || 0.5, lang, legTime);
+
+        stops.push({
+          stopOrder,
+          place,
+          arrivalTime: arrivalTimeStr,
+          departureTime: departureTimeStr,
+          durationMinutes: dwellMinutes,
+          costInr: legCost,
+          whyThis,
+          score: 0.95 - (stopOrder * 0.05),
+          scoreFactors: {
+            interest_match: 1,
+            budget_fit: 1,
+            travel_time: 0.9,
+            hour_suitability: 0.9,
+            weather_suitability: 1,
+            hazard_penalty: 0,
+          },
+          travelFromPrev: {
+            distanceMeters: route.distance_meters,
+            durationMinutes: route.duration_minutes,
+            mode: route.mode,
+            routeLabel: route.label,
+            geometry: route.geometry,
+          },
+        });
+
+        routeLegs.push(route);
+        visitedIds.add(place.id);
+
+        remainingMinutes -= (legTime + dwellMinutes);
+        remainingBudget = Math.max(0, remainingBudget - legCost);
+        currentHour = departureHour;
+        currentMinute = departureMin;
+        currentLocation = { lat: place.lat, lng: place.lng };
+        stopOrder++;
       }
+    }
 
-      const best = scoredCandidates[0];
-      const place = best.place;
-      const dwellMinutes = Math.max(30, Math.round(place.visit_minutes * paceMultiplier));
+    // Fallback to local heuristic scoring if Gemini did not produce at least 2 stops
+    if (stops.length < 2) {
+      visitedIds.clear();
+      stops.length = 0;
+      routeLegs.length = 0;
+      stopOrder = 1;
+      remainingMinutes = totalMinutesAllowed;
+      remainingBudget = constraints.budget_inr;
+      currentHour = parseInt(startHStr || '10', 10);
+      currentMinute = parseInt(startMStr || '0', 10);
+      currentLocation = { lat: startGeo.lat, lng: startGeo.lng };
+      planAiSource = 'local';
 
-      // Calculate travel time and get route geometry
-      const route = await routingProvider.getRoute(
-        currentLocation,
-        { lat: place.lat, lng: place.lng },
-        constraints.travel_mode
-      );
+      while (remainingMinutes > 35 && visitedIds.size < allPlaces.length) {
+        // Score all unvisited candidates
+        const scoredCandidates = allPlaces
+          .filter(p => !visitedIds.has(p.id))
+          .map(p => {
+            const rainProb = rainProbs[currentHour % 12] || 0;
+            return scorePlaceCandidate(
+              p,
+              currentLocation,
+              currentHour,
+              remainingBudget,
+              constraints,
+              hazardRows,
+              rainProb
+            );
+          })
+          .filter((c): c is NonNullable<typeof c> => c !== null)
+          .sort((a, b) => b.compositeScore - a.compositeScore);
 
-      const legTime = route.duration_minutes;
-      const legCost = place.indicative_price_inr;
+        if (scoredCandidates.length === 0) {
+          break; // No more reachable or eligible places
+        }
 
-      if (legTime + dwellMinutes > remainingMinutes && stops.length >= 2) {
-        // Can't fit this stop within remaining time and we already have a viable itinerary
-        break;
+        const best = scoredCandidates[0];
+        const place = best.place;
+        const dwellMinutes = Math.max(30, Math.round(place.visit_minutes * paceMultiplier));
+
+        // Calculate travel time and get route geometry
+        const route = await routingProvider.getRoute(
+          currentLocation,
+          { lat: place.lat, lng: place.lng },
+          constraints.travel_mode
+        );
+
+        const legTime = route.duration_minutes;
+        const legCost = place.indicative_price_inr;
+
+        if (legTime + dwellMinutes > remainingMinutes && stops.length >= 2) {
+          break;
+        }
+
+        // Compute arrival and departure
+        let arrivalMinutesTotal = currentHour * 60 + currentMinute + legTime;
+        const arrivalHour = Math.floor(arrivalMinutesTotal / 60) % 24;
+        const arrivalMin = arrivalMinutesTotal % 60;
+        const arrivalTimeStr = formatTime(arrivalHour, arrivalMin);
+
+        let departureMinutesTotal = arrivalMinutesTotal + dwellMinutes;
+        const departureHour = Math.floor(departureMinutesTotal / 60) % 24;
+        const departureMin = departureMinutesTotal % 60;
+        const departureTimeStr = formatTime(departureHour, departureMin);
+
+        // Generate "Why this?"
+        const crowdAtArrival = place.hourly_crowd[arrivalHour] || 0.5;
+        const whyThis = await aiProvider.generateWhyThis(
+          place.name,
+          place.category,
+          crowdAtArrival,
+          lang,
+          legTime
+        );
+
+        stops.push({
+          stopOrder,
+          place,
+          arrivalTime: arrivalTimeStr,
+          departureTime: departureTimeStr,
+          durationMinutes: dwellMinutes,
+          costInr: legCost,
+          whyThis,
+          score: best.compositeScore,
+          scoreFactors: best.factors,
+          travelFromPrev: {
+            distanceMeters: route.distance_meters,
+            durationMinutes: route.duration_minutes,
+            mode: route.mode,
+            routeLabel: route.label,
+            geometry: route.geometry,
+          },
+        });
+
+        routeLegs.push(route);
+        visitedIds.add(place.id);
+
+        // Advance state
+        remainingMinutes -= (legTime + dwellMinutes);
+        remainingBudget = Math.max(0, remainingBudget - legCost);
+        currentHour = departureHour;
+        currentMinute = departureMin;
+        currentLocation = { lat: place.lat, lng: place.lng };
+        stopOrder++;
       }
-
-      // Compute arrival and departure
-      let arrivalMinutesTotal = currentHour * 60 + currentMinute + legTime;
-      const arrivalHour = Math.floor(arrivalMinutesTotal / 60) % 24;
-      const arrivalMin = arrivalMinutesTotal % 60;
-      const arrivalTimeStr = formatTime(arrivalHour, arrivalMin);
-
-      let departureMinutesTotal = arrivalMinutesTotal + dwellMinutes;
-      const departureHour = Math.floor(departureMinutesTotal / 60) % 24;
-      const departureMin = departureMinutesTotal % 60;
-      const departureTimeStr = formatTime(departureHour, departureMin);
-
-      // Generate "Why this?"
-      const crowdAtArrival = place.hourly_crowd[arrivalHour] || 0.5;
-      const whyThis = await aiProvider.generateWhyThis(
-        place.name,
-        place.category,
-        crowdAtArrival,
-        lang,
-        legTime
-      );
-
-      stops.push({
-        stopOrder,
-        place,
-        arrivalTime: arrivalTimeStr,
-        departureTime: departureTimeStr,
-        durationMinutes: dwellMinutes,
-        costInr: legCost,
-        whyThis,
-        score: best.compositeScore,
-        scoreFactors: best.factors,
-        travelFromPrev: {
-          distanceMeters: route.distance_meters,
-          durationMinutes: route.duration_minutes,
-          mode: route.mode,
-          routeLabel: route.label,
-          geometry: route.geometry,
-        },
-      });
-
-      routeLegs.push(route);
-      visitedIds.add(place.id);
-
-      // Advance state
-      remainingMinutes -= (legTime + dwellMinutes);
-      remainingBudget = Math.max(0, remainingBudget - legCost);
-      currentHour = departureHour;
-      currentMinute = departureMin;
-      currentLocation = { lat: place.lat, lng: place.lng };
-      stopOrder++;
     }
 
     const totalCost = stops.reduce((sum, s) => sum + s.costInr, 0);
@@ -203,12 +297,11 @@ export const planner = {
     const endTimeStr = formatTime(Math.floor(endMinutes / 60), endMinutes % 60);
 
     const planId = `plan_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const planTitle = `${constraints.interests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(' & ')} Journey`;
 
     return {
       id: planId,
       title: planTitle,
-      tagline: 'Plan around the city\'s pulse.',
+      tagline: planTagline,
       city: targetCity,
       currency: targetCity === 'London' ? 'GBP' : targetCity === 'Tokyo' ? 'JPY' : targetCity === 'Paris' ? 'EUR' : targetCity === 'New York' ? 'USD' : 'INR',
       startTime: startTimeStr,
@@ -219,8 +312,8 @@ export const planner = {
       stops,
       routeLegs,
       constraintsUsed: constraints,
-      weatherSummary: weather.available ? `${weather.condition}, ${weather.temperature_c}°C` : 'Weather unavailable',
-      aiSource: env.GEMINI_API_KEY ? 'gemini' : 'local',
+      weatherSummary,
+      aiSource: planAiSource,
       createdAt: new Date().toISOString(),
     };
   },
