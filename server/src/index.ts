@@ -25,6 +25,7 @@ import shareRouter from './routes/share.js';
 import authRouter from './routes/auth.js';
 import passportRouter from './routes/passport.js';
 import citiesRouter from './routes/cities.js';
+import { settingsRouter } from './routes/settings.js';
 
 // Initialize SQLite database and seed initial data
 initializeDatabase();
@@ -63,6 +64,7 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/insights', insightsRouter);
 app.use('/api/share', shareRouter);
+app.use('/api/settings', settingsRouter);
 
 // Global Error Handler
 app.use(errorHandler);

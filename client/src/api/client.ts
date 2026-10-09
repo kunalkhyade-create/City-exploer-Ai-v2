@@ -22,6 +22,24 @@ export const api = {
     return res.json();
   },
 
+  async getGeminiStatus(): Promise<{ isConfigured: boolean; model: string }> {
+    const res = await fetch('/api/settings/gemini-key');
+    return res.json();
+  },
+
+  async saveGeminiKey(apiKey: string, model?: string): Promise<{ ok: boolean; message: string; model?: string }> {
+    const res = await fetch('/api/settings/gemini-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, model }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || 'Failed to verify Gemini API key');
+    }
+    return data;
+  },
+
   async getMe(): Promise<{ user: User | null; passport: UserPassport | null }> {
     const res = await fetch('/api/auth/me');
     return res.json();

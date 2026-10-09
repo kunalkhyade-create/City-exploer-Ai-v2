@@ -8,6 +8,7 @@ interface PlanPromptBarProps {
   isLoading: boolean;
   aiSource: 'gemini' | 'local';
   cityName?: string;
+  onOpenAiSettings?: () => void;
 }
 
 export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
@@ -15,6 +16,7 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
   isLoading,
   aiSource,
   cityName = 'Pune',
+  onOpenAiSettings,
 }) => {
   const { t } = useTranslation();
   const [promptText, setPromptText] = useState('');
@@ -73,16 +75,37 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
-          {aiSource === 'gemini' ? (
-            <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
-              {t('prompt.ai_live')}
-            </span>
+          {onOpenAiSettings ? (
+            <button
+              type="button"
+              onClick={onOpenAiSettings}
+              className="group flex items-center cursor-pointer"
+              title="Click to configure Google Gemini AI Key"
+            >
+              {aiSource === 'gemini' ? (
+                <span className="bg-emerald-500/15 group-hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span>Gemini Live AI</span>
+                </span>
+              ) : (
+                <span className="bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition">
+                  <Zap className="w-3 h-3 text-amber-400" />
+                  <span>Deterministic Engine (Click to add Gemini)</span>
+                </span>
+              )}
+            </button>
           ) : (
-            <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium">
-              <Zap className="w-3 h-3 text-amber-400" />
-              {t('prompt.ai_local')}
-            </span>
+            aiSource === 'gemini' ? (
+              <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium">
+                <Sparkles className="w-3 h-3 text-emerald-400" />
+                {t('prompt.ai_live')}
+              </span>
+            ) : (
+              <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1 text-[11px] font-medium">
+                <Zap className="w-3 h-3 text-amber-400" />
+                {t('prompt.ai_local')}
+              </span>
+            )
           )}
         </div>
       </div>

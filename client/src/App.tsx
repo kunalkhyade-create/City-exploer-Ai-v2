@@ -32,6 +32,7 @@ import { ConfidenceMeter } from './components/ConfidenceMeter';
 import { AuthModal } from './components/AuthModal';
 import { PassportModal } from './components/PassportModal';
 import { WhatIfSimulatorModal } from './components/WhatIfSimulatorModal';
+import { GeminiKeyModal } from './components/GeminiKeyModal';
 
 import {
   Place,
@@ -82,6 +83,7 @@ export const App: React.FC = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showPassport, setShowPassport] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
 
   // Notification Toast State
@@ -358,6 +360,7 @@ export const App: React.FC = () => {
               isLoading={isGenerating}
               aiSource={aiSource}
               cityName={currentCity}
+              onOpenAiSettings={() => setShowGeminiKey(true)}
             />
           </div>
           <div>
@@ -477,6 +480,15 @@ export const App: React.FC = () => {
         isOpen={showAuth}
         onClose={() => setShowAuth(false)}
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      <GeminiKeyModal
+        isOpen={showGeminiKey}
+        onClose={() => setShowGeminiKey(false)}
+        onSuccess={() => {
+          setAiSource('gemini');
+          showToast('Gemini AI activated! All plan generations now use live Gemini.');
+        }}
       />
 
       <PassportModal
