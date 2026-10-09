@@ -17,7 +17,8 @@ export function initSchema(): void {
       hourly_crowd TEXT NOT NULL, -- JSON array of 24 numbers (0.0 to 1.0)
       opening_hours TEXT, -- NULL unless verified
       source_tag TEXT NOT NULL DEFAULT 'Demo',
-      last_updated TEXT NOT NULL
+      last_updated TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT 'Pune'
     );
 
     CREATE TABLE IF NOT EXISTS hazards (
@@ -32,7 +33,8 @@ export function initSchema(): void {
       verification_status TEXT NOT NULL DEFAULT 'Demo',
       confidence REAL NOT NULL DEFAULT 0.85,
       source_tag TEXT NOT NULL DEFAULT 'Demo',
-      created_at TEXT NOT NULL
+      created_at TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT 'Pune'
     );
 
     CREATE TABLE IF NOT EXISTS reports (
@@ -46,7 +48,8 @@ export function initSchema(): void {
       source_tag TEXT NOT NULL DEFAULT 'Community',
       session_id TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      city TEXT NOT NULL DEFAULT 'Pune'
     );
 
     CREATE TABLE IF NOT EXISTS report_status_history (
@@ -118,10 +121,46 @@ export function initSchema(): void {
       description TEXT NOT NULL
     );
 
+    -- Phase 2 & 4: Users and Urban Pulse Passports
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      name TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_passports (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      session_id TEXT,
+      interests TEXT NOT NULL DEFAULT '["heritage","street food"]',
+      budget_inr INTEGER NOT NULL DEFAULT 600,
+      travel_mode TEXT NOT NULL DEFAULT 'foot-walking',
+      pace TEXT NOT NULL DEFAULT 'moderate',
+      accessibility TEXT NOT NULL DEFAULT '[]',
+      crowd_preference TEXT NOT NULL DEFAULT 'peaceful',
+      indoor_outdoor TEXT NOT NULL DEFAULT 'balanced',
+      preferred_language TEXT NOT NULL DEFAULT 'en',
+      default_city TEXT NOT NULL DEFAULT 'Pune',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_places_category ON places(category);
     CREATE INDEX IF NOT EXISTS idx_places_coords ON places(lat, lng);
     CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
     CREATE INDEX IF NOT EXISTS idx_trips_session ON trips(session_id);
     CREATE INDEX IF NOT EXISTS idx_saved_session ON saved_places(session_id);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_passports_user ON user_passports(user_id);
+    CREATE INDEX IF NOT EXISTS idx_passports_session ON user_passports(session_id);
   `);
+
+  // Safe backwards-compatible column additions
+  try { db.exec("ALTER TABLE places ADD COLUMN city TEXT NOT NULL DEFAULT 'Pune';"); } catch {}
+  try { db.exec("ALTER TABLE hazards ADD COLUMN city TEXT NOT NULL DEFAULT 'Pune';"); } catch {}
+  try { db.exec("ALTER TABLE reports ADD COLUMN city TEXT NOT NULL DEFAULT 'Pune';"); } catch {}
 }

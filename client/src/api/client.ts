@@ -6,6 +6,9 @@ import {
   ReplanResult,
   DataSourceStatus,
   ReportItem,
+  User,
+  UserPassport,
+  CityInfo,
 } from '../types';
 
 export const api = {
@@ -14,11 +17,73 @@ export const api = {
     return res.json();
   },
 
-  async getPlaces(params: { q?: string; category?: string; step_free?: boolean; page?: number; pageSize?: number } = {}): Promise<{ items: Place[]; total: number }> {
+  async getCities(): Promise<{ items: CityInfo[] }> {
+    const res = await fetch('/api/cities');
+    return res.json();
+  },
+
+  async getMe(): Promise<{ user: User | null; passport: UserPassport | null }> {
+    const res = await fetch('/api/auth/me');
+    return res.json();
+  },
+
+  async register(email: string, password: string, name?: string): Promise<{ user: User }> {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Registration failed');
+    }
+    return res.json();
+  },
+
+  async login(email: string, password: string): Promise<{ user: User }> {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Login failed');
+    }
+    return res.json();
+  },
+
+  async logout(): Promise<{ ok: boolean }> {
+    const res = await fetch('/api/auth/logout', {
+      method: 'POST',
+    });
+    return res.json();
+  },
+
+  async getPassport(): Promise<{ passport: UserPassport | null }> {
+    const res = await fetch('/api/passport');
+    return res.json();
+  },
+
+  async savePassport(passport: Partial<UserPassport>): Promise<{ passport: UserPassport }> {
+    const res = await fetch('/api/passport', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(passport),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Failed to save passport');
+    }
+    return res.json();
+  },
+
+  async getPlaces(params: { q?: string; category?: string; step_free?: boolean; city?: string; page?: number; pageSize?: number } = {}): Promise<{ items: Place[]; total: number }> {
     const search = new URLSearchParams();
     if (params.q) search.set('q', params.q);
     if (params.category && params.category !== 'all') search.set('category', params.category);
     if (params.step_free) search.set('step_free', 'true');
+    if (params.city) search.set('city', params.city);
     if (params.page) search.set('page', String(params.page));
     if (params.pageSize) search.set('pageSize', String(params.pageSize));
 
@@ -26,13 +91,15 @@ export const api = {
     return res.json();
   },
 
-  async getHazards(): Promise<{ items: Hazard[]; disclaimer: string }> {
-    const res = await fetch('/api/hazards');
+  async getHazards(city?: string): Promise<{ items: Hazard[]; disclaimer: string }> {
+    const q = city ? `?city=${encodeURIComponent(city)}` : '';
+    const res = await fetch(`/api/hazards${q}`);
     return res.json();
   },
 
-  async getWeather(): Promise<WeatherData> {
-    const res = await fetch('/api/weather');
+  async getWeather(lat?: number, lng?: number): Promise<WeatherData> {
+    const q = (lat !== undefined && lng !== undefined) ? `?lat=${lat}&lng=${lng}` : '';
+    const res = await fetch(`/api/weather${q}`);
     return res.json();
   },
 
@@ -83,8 +150,9 @@ export const api = {
     return res.json();
   },
 
-  async getReports(): Promise<{ items: ReportItem[] }> {
-    const res = await fetch('/api/reports');
+  async getReports(city?: string): Promise<{ items: ReportItem[] }> {
+    const q = city ? `?city=${encodeURIComponent(city)}` : '';
+    const res = await fetch(`/api/reports${q}`);
     return res.json();
   },
 

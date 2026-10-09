@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Check,
   ChevronRight,
+  Sliders,
 } from 'lucide-react';
 
 import { Navbar } from './components/Navbar';
@@ -28,8 +29,21 @@ import { DataSourcesModal } from './components/DataSourcesModal';
 import { SavedDrawer } from './components/SavedDrawer';
 import { CompareModal } from './components/CompareModal';
 import { ConfidenceMeter } from './components/ConfidenceMeter';
+import { AuthModal } from './components/AuthModal';
+import { PassportModal } from './components/PassportModal';
+import { WhatIfSimulatorModal } from './components/WhatIfSimulatorModal';
 
-import { Place, Hazard, WeatherData, GeneratedPlan, ReplanResult, DataSourceStatus } from './types';
+import {
+  Place,
+  Hazard,
+  WeatherData,
+  GeneratedPlan,
+  ReplanResult,
+  DataSourceStatus,
+  User,
+  UserPassport,
+  CityInfo,
+} from './types';
 import { api } from './api/client';
 
 export const App: React.FC = () => {
@@ -41,6 +55,15 @@ export const App: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [dataSources, setDataSources] = useState<DataSourceStatus[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
+
+  // Multi-City State
+  const [availableCities, setAvailableCities] = useState<CityInfo[]>([]);
+  const [currentCity, setCurrentCity] = useState<string>('Pune');
+  const [currentCityCoords, setCurrentCityCoords] = useState<[number, number]>([18.5204, 73.8567]);
+
+  // Auth & Passport State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [passport, setPassport] = useState<UserPassport | null>(null);
 
   // Planner State
   const [currentPlan, setCurrentPlan] = useState<GeneratedPlan | null>(null);
@@ -56,6 +79,10 @@ export const App: React.FC = () => {
   const [showReport, setShowReport] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showPassport, setShowPassport] = useState(false);
+  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [isOnboarding, setIsOnboarding] = useState(false);
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -69,13 +96,30 @@ export const App: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [placesRes, hazardsRes, weatherRes, healthRes, savedRes] = await Promise.allSettled([
-          api.getPlaces({ pageSize: 50 }),
-          api.getHazards(),
-          api.getWeather(),
+        const [citiesRes, meRes, placesRes, hazardsRes, weatherRes, healthRes, savedRes] = await Promise.allSettled([
+          api.getCities(),
+          api.getMe(),
+          api.getPlaces({ city: currentCity, pageSize: 50 }),
+          api.getHazards(currentCity),
+          api.getWeather(currentCityCoords[0], currentCityCoords[1]),
           api.getHealth(),
           api.getSavedPlaces(),
         ]);
+
+        if (citiesRes.status === 'fulfilled') {
+          setAvailableCities(citiesRes.value.items || []);
+        }
+
+        if (meRes.status === 'fulfilled') {
+          setCurrentUser(meRes.value.user);
+          if (meRes.value.passport) {
+            setPassport(meRes.value.passport);
+            if (meRes.value.passport.default_city && meRes.value.passport.default_city !== currentCity) {
+              const targetCity = meRes.value.passport.default_city;
+              setCurrentCity(targetCity);
+            }
+          }
+        }
 
         if (placesRes.status === 'fulfilled') setPlaces(placesRes.value.items || []);
         if (hazardsRes.status === 'fulfilled') setHazards(hazardsRes.value.items || []);
@@ -96,6 +140,29 @@ export const App: React.FC = () => {
     loadInitialData();
   }, []);
 
+  // Handle Switching Destination City
+  const handleSelectCity = async (city: CityInfo) => {
+    setCurrentCity(city.name);
+    setCurrentCityCoords([city.lat, city.lng]);
+    setSelectedPlace(null);
+
+    try {
+      const [placesRes, hazardsRes, weatherRes] = await Promise.allSettled([
+        api.getPlaces({ city: city.name, pageSize: 50 }),
+        api.getHazards(city.name),
+        api.getWeather(city.lat, city.lng),
+      ]);
+
+      if (placesRes.status === 'fulfilled') setPlaces(placesRes.value.items || []);
+      if (hazardsRes.status === 'fulfilled') setHazards(hazardsRes.value.items || []);
+      if (weatherRes.status === 'fulfilled') setWeather(weatherRes.value);
+
+      showToast(`Switched destination to ${city.name}`);
+    } catch (err) {
+      console.error('Error switching city:', err);
+    }
+  };
+
   // Generate Itinerary from Natural Prompt
   const handleGeneratePlan = async (
     promptText: string,
@@ -111,11 +178,20 @@ export const App: React.FC = () => {
         constraints = {
           ...parsed.constraints,
           ...customConstraints,
+          city: currentCity,
         };
         setAiSource(parsed.source);
       } else {
         const parsed = await api.parsePrompt(promptText);
-        constraints = parsed.constraints;
+        // Merge with saved passport preferences if available
+        constraints = {
+          ...parsed.constraints,
+          city: currentCity,
+          budget_inr: passport?.budget_inr || parsed.constraints.budget_inr,
+          travel_mode: passport?.travel_mode || parsed.constraints.travel_mode,
+          pace: passport?.pace || parsed.constraints.pace,
+          accessibility: passport?.accessibility?.length ? passport.accessibility : parsed.constraints.accessibility,
+        };
         setAiSource(parsed.source);
       }
 
@@ -126,7 +202,7 @@ export const App: React.FC = () => {
       });
 
       setCurrentPlan(plan);
-      showToast(`Generated: ${plan.title} (${plan.stops.length} stops)`);
+      showToast(`Generated: ${plan.title} (${plan.stops.length} stops in ${plan.city})`);
     } catch (err: any) {
       console.error(err);
       showToast('Error generating plan. Please try again.');
@@ -208,17 +284,47 @@ export const App: React.FC = () => {
     }
   };
 
+  // Auth Handlers
+  const handleAuthSuccess = (user: User, isNewRegistration?: boolean) => {
+    setCurrentUser(user);
+    showToast(`Welcome ${user.name || user.email}!`);
+    if (isNewRegistration) {
+      setIsOnboarding(true);
+      setShowPassport(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      setCurrentUser(null);
+      showToast('Signed out. Continuing in anonymous guest mode.');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-white">
       {/* Persistent DEMO DATA Ribbon & Safety Disclaimer */}
       <DemoRibbon />
 
-      {/* Main Navigation */}
+      {/* Main Navigation with Multi-City & Auth */}
       <Navbar
         onOpenDataSources={() => setShowDataSources(true)}
         onOpenSaved={() => setShowSaved(true)}
         onOpenReport={() => setShowReport(true)}
         onOpenAdmin={() => setShowAdmin(true)}
+        onOpenPassport={() => {
+          setIsOnboarding(false);
+          setShowPassport(true);
+        }}
+        onOpenAuth={() => setShowAuth(true)}
+        onLogout={handleLogout}
+        currentUser={currentUser}
+        currentCity={currentCity}
+        onSelectCity={handleSelectCity}
+        availableCities={availableCities}
         savedCount={savedPlaces.length}
       />
 
@@ -231,6 +337,7 @@ export const App: React.FC = () => {
               onGeneratePlan={handleGeneratePlan}
               isLoading={isGenerating}
               aiSource={aiSource}
+              cityName={currentCity}
             />
           </div>
           <div>
@@ -241,8 +348,8 @@ export const App: React.FC = () => {
         {/* Action Quick Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-900/60 p-3 rounded-xl border border-slate-800">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 font-medium">Demo Landmark Explorer:</span>
-            <span className="font-bold text-slate-200">{places.length} Pune Spots</span>
+            <span className="text-slate-400 font-medium">Destination Explorer:</span>
+            <span className="font-bold text-cyan-300">{places.length} {currentCity} Spots</span>
             <span className="text-slate-500">•</span>
             <span className="text-rose-400 font-semibold">{hazards.length} Active Alerts (Demo)</span>
           </div>
@@ -252,7 +359,7 @@ export const App: React.FC = () => {
               onClick={() => setShowCompare(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg border border-slate-700 transition"
             >
-              <Scale className="w-3.5 h-3.5 text-orange-400" />
+              <Scale className="w-3.5 h-3.5 text-cyan-400" />
               <span>Compare Places</span>
             </button>
           </div>
@@ -269,6 +376,8 @@ export const App: React.FC = () => {
               selectedPlace={selectedPlace}
               onSelectPlace={(p) => setSelectedPlace(p)}
               onSavePlace={handleToggleSave}
+              cityCenter={currentCityCoords}
+              cityName={currentCity}
             />
           </div>
 
@@ -281,33 +390,34 @@ export const App: React.FC = () => {
                 onSavePlace={handleToggleSave}
                 onShareWhatsApp={handleShareWhatsApp}
                 onSelectStop={(s) => setSelectedPlace(s.place)}
+                onOpenWhatIf={() => setShowWhatIf(true)}
                 isReplanning={isReplanning}
               />
             ) : (
               <div className="glass-panel rounded-2xl p-6 text-center space-y-4 border border-slate-800">
-                <div className="w-12 h-12 rounded-2xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center mx-auto shadow-inner pulse-glow">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center mx-auto shadow-inner pulse-glow">
                   <Compass className="w-7 h-7" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white">
-                    Ready to Pulse Through Pune?
+                    Ready to Pulse Through {currentCity}?
                   </h3>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
-                    Type a prompt above (e.g., <em>"Plan my afternoon in Pune for ₹500 near FC Road with street food"</em>) or click any pin on the map to inspect historic crowd profiles.
+                    Type a prompt above (e.g., <em>"Plan my afternoon in {currentCity} for ₹600 with local street food"</em>) or click any pin on the map to inspect historic crowd profiles.
                   </p>
                 </div>
 
                 {/* Sample places list preview */}
                 <div className="pt-2 text-left space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Featured Pune Curations:
+                    Featured {currentCity} Curations:
                   </span>
                   <div className="grid grid-cols-1 gap-2">
                     {places.slice(0, 3).map(p => (
                       <div
                         key={p.id}
                         onClick={() => setSelectedPlace(p)}
-                        className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-orange-500/50 cursor-pointer transition flex items-center justify-between text-xs"
+                        className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 cursor-pointer transition flex items-center justify-between text-xs"
                       >
                         <div>
                           <strong className="text-slate-200">{p.name}</strong>
@@ -327,7 +437,7 @@ export const App: React.FC = () => {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-800/80 bg-slate-950/80 py-4 px-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CITYPULSE AI — "Plan around the city's pulse." Demo city: Pune, India.</span>
+          <span>CITYPULSE AI — "Explore Freely. Move Smartly. Stay Aware." Multi-City Platform.</span>
           <span className="text-slate-600">
             Open-Meteo • OpenRouteService • Nominatim • Leaflet • Gemini
           </span>
@@ -336,13 +446,50 @@ export const App: React.FC = () => {
 
       {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 border border-orange-500/50 text-orange-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
-          <Check className="w-4 h-4 text-orange-400" />
+        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 border border-cyan-500/50 text-cyan-200 text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-bounce">
+          <Check className="w-4 h-4 text-cyan-400" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Modals & Drawers */}
+      <AuthModal
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      <PassportModal
+        isOpen={showPassport}
+        onClose={() => {
+          setShowPassport(false);
+          setIsOnboarding(false);
+        }}
+        passport={passport}
+        onSave={(updated) => {
+          setPassport(updated);
+          if (updated.default_city && updated.default_city !== currentCity) {
+            const found = availableCities.find(c => c.name.toLowerCase() === updated.default_city.toLowerCase());
+            if (found) handleSelectCity(found);
+          }
+          showToast('Urban Pulse Passport saved!');
+        }}
+        availableCities={availableCities}
+        isOnboarding={isOnboarding}
+      />
+
+      {currentPlan && (
+        <WhatIfSimulatorModal
+          isOpen={showWhatIf}
+          onClose={() => setShowWhatIf(false)}
+          currentPlan={currentPlan}
+          onApplySimulatedPlan={(simulated) => {
+            setCurrentPlan(simulated);
+            showToast('Simulation successfully applied to active plan!');
+          }}
+        />
+      )}
+
       <PlanDiffModal
         replanData={replanData}
         onClose={() => setReplanData(null)}

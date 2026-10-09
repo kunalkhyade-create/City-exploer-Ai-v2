@@ -14,28 +14,54 @@ const reportFieldsSchema = z.object({
   category: z.string().optional().default('general'),
   lat: z.coerce.number(),
   lng: z.coerce.number(),
+  city: z.string().optional().default('Pune'),
 });
 
 // GET /api/reports
 // Policy: Only Verified or Resolved shown as facts. Pending/Under Review shown as "Unverified" with description withheld. Rejected hidden.
 router.get('/', (req, res) => {
-  const rows = db.prepare(`
-    SELECT id, title, description, category, lat, lng, status, source_tag, created_at, updated_at
-    FROM reports
-    WHERE status != 'Rejected'
-    ORDER BY created_at DESC
-  `).all() as Array<{
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    lat: number;
-    lng: number;
-    status: string;
-    source_tag: string;
-    created_at: string;
-    updated_at: string;
-  }>;
+  const city = req.query.city as string | undefined;
+
+  let rows;
+  if (city && city !== 'all') {
+    rows = db.prepare(`
+      SELECT id, title, description, category, lat, lng, status, source_tag, created_at, updated_at, city
+      FROM reports
+      WHERE status != 'Rejected' AND LOWER(city) = LOWER(?)
+      ORDER BY created_at DESC
+    `).all(city) as Array<{
+      id: string;
+      title: string;
+      description: string;
+      category: string;
+      lat: number;
+      lng: number;
+      status: string;
+      source_tag: string;
+      created_at: string;
+      updated_at: string;
+      city?: string;
+    }>;
+  } else {
+    rows = db.prepare(`
+      SELECT id, title, description, category, lat, lng, status, source_tag, created_at, updated_at, city
+      FROM reports
+      WHERE status != 'Rejected'
+      ORDER BY created_at DESC
+    `).all() as Array<{
+      id: string;
+      title: string;
+      description: string;
+      category: string;
+      lat: number;
+      lng: number;
+      status: string;
+      source_tag: string;
+      created_at: string;
+      updated_at: string;
+      city?: string;
+    }>;
+  }
 
   const sanitizedList = rows.map(r => {
     const isVerifiedFact = r.status === 'Verified' || r.status === 'Resolved';
@@ -136,8 +162,8 @@ router.post('/', uploadMiddleware.array('files', 2), async (req, res, next) => {
     db.prepare(`
       INSERT INTO reports (
         id, title, description, category, lat, lng,
-        status, source_tag, session_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        status, source_tag, session_id, created_at, updated_at, city
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       reportId,
       redactedTitle.sanitized,
@@ -149,7 +175,8 @@ router.post('/', uploadMiddleware.array('files', 2), async (req, res, next) => {
       'Community',
       req.sessionId,
       nowIso,
-      nowIso
+      nowIso,
+      rawBody.city || 'Pune'
     );
 
     // Initial status history log

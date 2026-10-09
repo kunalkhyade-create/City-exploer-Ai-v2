@@ -9,6 +9,7 @@ const placesQuerySchema = z.object({
   category: z.string().optional(),
   step_free: z.preprocess(v => v === 'true' || v === '1', z.boolean()).optional(),
   hour: z.coerce.number().min(0).max(23).optional(),
+  city: z.string().optional(),
   lat: z.coerce.number().optional(),
   lng: z.coerce.number().optional(),
   page: z.coerce.number().min(1).default(1),

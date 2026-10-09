@@ -22,6 +22,9 @@ import reportsRouter from './routes/reports.js';
 import adminRouter from './routes/admin.js';
 import insightsRouter from './routes/insights.js';
 import shareRouter from './routes/share.js';
+import authRouter from './routes/auth.js';
+import passportRouter from './routes/passport.js';
+import citiesRouter from './routes/cities.js';
 
 // Initialize SQLite database and seed initial data
 initializeDatabase();
@@ -45,6 +48,9 @@ app.use(sessionMiddleware);
 app.use(standardRateLimiter);
 
 // API Routes
+app.use('/api/auth', authRouter);
+app.use('/api/passport', passportRouter);
+app.use('/api/cities', citiesRouter);
 app.use('/api/health', healthRouter);
 app.use('/api/places', placesRouter);
 app.use('/api/hazards', hazardsRouter);

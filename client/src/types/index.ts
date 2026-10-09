@@ -13,6 +13,7 @@ export interface Place {
   hourly_crowd: number[];
   opening_hours: string | null;
   source_tag: string;
+  city?: string;
   last_updated: string;
 }
 
@@ -28,6 +29,7 @@ export interface Hazard {
   verification_status: string;
   confidence: number;
   source_tag: string;
+  city?: string;
   created_at: string;
 }
 
@@ -78,8 +80,8 @@ export interface GeneratedPlan {
   id: string;
   title: string;
   tagline: string;
-  city: 'Pune';
-  currency: 'INR';
+  city: string;
+  currency: 'INR' | string;
   startTime: string;
   endTime: string;
   totalDurationMinutes: number;
@@ -90,6 +92,7 @@ export interface GeneratedPlan {
   aiSource: 'gemini' | 'local';
   createdAt: string;
   constraintsUsed: {
+    city?: string;
     budget_inr: number;
     hours: number;
     interests: string[];
@@ -142,4 +145,45 @@ export interface ReportItem {
   source_tag: string;
   created_at: string;
   safetyDisclaimer?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+}
+
+export interface UserPassport {
+  id?: string;
+  user_id?: string;
+  session_id?: string;
+  interests: string[];
+  budget_inr: number;
+  travel_mode: 'foot-walking' | 'cycling-regular' | 'driving-car';
+  pace: 'relaxed' | 'moderate' | 'packed';
+  accessibility: string[];
+  crowd_preference: 'peaceful' | 'balanced' | 'buzzing';
+  indoor_outdoor: 'all' | 'indoor' | 'outdoor';
+  preferred_language: 'en' | 'hi' | 'mr';
+  default_city: string;
+  updated_at?: string;
+}
+
+export interface CityInfo {
+  id: string;
+  name: string;
+  state: string;
+  country: string;
+  lat: number;
+  lng: number;
+  currency: string;
+  timezone: string;
+  popular?: boolean;
+  coverage: {
+    weather: 'live' | 'fallback' | 'unavailable';
+    routing: 'live' | 'fallback';
+    placesCount: number;
+    hazardsCount: number;
+  };
 }

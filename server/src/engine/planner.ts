@@ -38,8 +38,8 @@ export interface GeneratedPlan {
   id: string;
   title: string;
   tagline: string;
-  city: 'Pune';
-  currency: 'INR';
+  city: string;
+  currency: 'INR' | string;
   startTime: string;
   endTime: string;
   totalDurationMinutes: number;
@@ -65,18 +65,25 @@ export const planner = {
     lang: 'en' | 'hi' | 'mr' = 'en',
     startTimeStr: string = '10:00'
   ): Promise<GeneratedPlan> {
-    // 1. Geocode start location
-    const startGeo = await geocodingProvider.geocode(constraints.start_location || 'FC Road');
+    const targetCity = constraints.city || 'Pune';
+
+    // 1. Geocode start location with target city context
+    const startGeo = await geocodingProvider.geocode(constraints.start_location || targetCity, targetCity);
     let currentLocation: Coordinates = { lat: startGeo.lat, lng: startGeo.lng };
 
-    // 2. Fetch all places and active hazards
-    const allPlaces = placesProvider.getAll({ pageSize: 100 }).items;
+    // 2. Fetch places for target city with graceful fallback
+    let allPlaces = placesProvider.getAll({ city: targetCity, pageSize: 100 }).items;
+    if (allPlaces.length === 0) {
+      allPlaces = placesProvider.getAll({ pageSize: 100 }).items;
+    }
+
     const hazardRows = db.prepare(`
       SELECT id, lat, lng, radius_m, confidence, category
       FROM hazards
-    `).all() as unknown as ActiveHazard[];
+      WHERE LOWER(city) = LOWER(?)
+    `).all(targetCity) as unknown as ActiveHazard[];
 
-    // 3. Fetch weather
+    // 3. Fetch weather for target city coordinates
     const weather = await weatherProvider.getWeather(currentLocation.lat, currentLocation.lng);
     const rainProbs = weather.rain_probability_12h || [];
 
@@ -202,8 +209,8 @@ export const planner = {
       id: planId,
       title: planTitle,
       tagline: 'Plan around the city\'s pulse.',
-      city: 'Pune',
-      currency: 'INR',
+      city: targetCity,
+      currency: targetCity === 'London' ? 'GBP' : targetCity === 'Tokyo' ? 'JPY' : targetCity === 'Paris' ? 'EUR' : targetCity === 'New York' ? 'USD' : 'INR',
       startTime: startTimeStr,
       endTime: endTimeStr,
       totalDurationMinutes: totalDuration,

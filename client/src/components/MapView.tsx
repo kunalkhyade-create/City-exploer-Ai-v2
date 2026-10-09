@@ -10,6 +10,8 @@ interface MapViewProps {
   selectedPlace?: Place | null;
   onSelectPlace?: (place: Place) => void;
   onSavePlace?: (placeId: string) => void;
+  cityCenter?: [number, number];
+  cityName?: string;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -18,6 +20,8 @@ export const MapView: React.FC<MapViewProps> = ({
   plannedStops = [],
   selectedPlace,
   onSelectPlace,
+  cityCenter = [18.5204, 73.8567],
+  cityName = 'Pune',
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -178,12 +182,16 @@ export const MapView: React.FC<MapViewProps> = ({
 
     // Center on selected place or bounds
     if (selectedPlace) {
-      map.setView([selectedPlace.lat, selectedPlace.lng], 15, { animate: true });
+       map.setView([selectedPlace.lat, selectedPlace.lng], 15, { animate: true });
     } else if (plannedStops.length > 0) {
       const stopBounds = plannedStops.map(s => [s.place.lat, s.place.lng] as [number, number]);
       map.fitBounds(stopBounds, { padding: [40, 40] });
+    } else if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [30, 30] });
+    } else if (cityCenter) {
+      map.setView(cityCenter, 13, { animate: true });
     }
-  }, [places, hazards, plannedStops, selectedPlace, onSelectPlace]);
+  }, [places, hazards, plannedStops, selectedPlace, onSelectPlace, cityCenter]);
 
   return (
     <div className="relative w-full h-full min-h-[420px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
@@ -213,7 +221,7 @@ export const MapView: React.FC<MapViewProps> = ({
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-indigo-500 border border-white inline-block" />
-          <span>Pune Places</span>
+          <span>{cityName} Places</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-rose-500 border border-rose-200 inline-block" />

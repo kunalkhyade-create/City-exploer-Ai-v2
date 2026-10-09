@@ -657,21 +657,288 @@ const DATA_SOURCES_SEED = [
   },
 ];
 
+interface MultiCityPlace extends SeedPlace {
+  city: string;
+}
+
+const ADDITIONAL_CITY_PLACES: MultiCityPlace[] = [
+  // MUMBAI
+  {
+    id: 'place_mum_gateway',
+    name: 'Gateway of India',
+    category: 'heritage',
+    description: 'Iconic 20th-century basalt arch monument overlooking Mumbai Harbour and the Arabian Sea.',
+    lat: 18.9220,
+    lng: 72.8347,
+    indicative_price_inr: 0,
+    visit_minutes: 60,
+    step_free: 1,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0.1,0.2,0.4,0.6,0.7,0.75,0.7,0.7,0.75,0.8,0.85,0.9,0.95,0.9,0.7,0.4,0.1,0,0],
+    opening_hours: '24 Hours Open',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Mumbai',
+  },
+  {
+    id: 'place_mum_marine_drive',
+    name: 'Marine Drive & Queen\'s Necklace',
+    category: 'nature',
+    description: '3.6-kilometer-long arc promenade along Netaji Subhash Chandra Bose Road offering sunset sea views.',
+    lat: 18.9432,
+    lng: 72.8230,
+    indicative_price_inr: 0,
+    visit_minutes: 75,
+    step_free: 1,
+    seating: 1,
+    restroom: 0,
+    hourly_crowd: [0,0,0,0,0,0.2,0.4,0.4,0.3,0.2,0.2,0.2,0.2,0.25,0.3,0.45,0.65,0.85,0.95,0.95,0.8,0.5,0.2,0],
+    opening_hours: '24 Hours Open',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Mumbai',
+  },
+  {
+    id: 'place_mum_crawford',
+    name: 'Crawford Market (Mahatma Jyotiba Phule Mandai)',
+    category: 'shopping',
+    description: 'Historic Victorian gothic covered marketplace renowned for fresh spices, fruits, and wholesale crafts.',
+    lat: 18.9472,
+    lng: 72.8358,
+    indicative_price_inr: 250,
+    visit_minutes: 60,
+    step_free: 0,
+    seating: 0,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0.1,0.3,0.6,0.75,0.8,0.75,0.7,0.75,0.85,0.9,0.8,0.5,0.1,0,0,0],
+    opening_hours: '10:00 - 20:00',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Mumbai',
+  },
+  {
+    id: 'place_mum_bademiya',
+    name: 'Bademiya Seekh Kebab & Rolls (Colaba)',
+    category: 'street food',
+    description: 'Celebrated open-air night eatery famous for charcoal seekh kebabs, baida roti, and roomali rolls.',
+    lat: 18.9242,
+    lng: 72.8335,
+    indicative_price_inr: 320,
+    visit_minutes: 45,
+    step_free: 1,
+    seating: 0,
+    restroom: 0,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0,0,0,0.2,0.4,0.3,0.2,0.2,0.3,0.5,0.75,0.95,0.95,0.9,0.6,0.2],
+    opening_hours: '12:00 - 02:00',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Mumbai',
+  },
+
+  // DELHI
+  {
+    id: 'place_del_red_fort',
+    name: 'Red Fort (Lal Qila)',
+    category: 'heritage',
+    description: '17th-century Mughal red sandstone fortress commissioned by Shah Jahan, UNESCO World Heritage Site.',
+    lat: 28.6562,
+    lng: 77.2410,
+    indicative_price_inr: 50,
+    visit_minutes: 90,
+    step_free: 1,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0.1,0.3,0.55,0.7,0.75,0.7,0.75,0.8,0.7,0.4,0.1,0,0,0,0,0],
+    opening_hours: '09:30 - 16:30 (Mon Closed)',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Delhi',
+  },
+  {
+    id: 'place_del_chandni_chowk',
+    name: 'Chandni Chowk & Paranthe Wali Gali',
+    category: 'street food',
+    description: 'Historic bazaar of Old Delhi crammed with heritage food stalls frying stuffed paranthas and jalebis.',
+    lat: 28.6506,
+    lng: 77.2303,
+    indicative_price_inr: 150,
+    visit_minutes: 75,
+    step_free: 0,
+    seating: 1,
+    restroom: 0,
+    hourly_crowd: [0,0,0,0,0,0,0,0.1,0.2,0.4,0.6,0.75,0.85,0.8,0.75,0.85,0.95,0.9,0.75,0.4,0.1,0,0,0],
+    opening_hours: '09:00 - 21:00',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Delhi',
+  },
+  {
+    id: 'place_del_india_gate',
+    name: 'India Gate & Kartavya Path',
+    category: 'culture',
+    description: '42-meter high triumphal war memorial arch with sprawling manicured lawns and evening fountains.',
+    lat: 28.6129,
+    lng: 77.2295,
+    indicative_price_inr: 0,
+    visit_minutes: 60,
+    step_free: 1,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0,0.1,0.2,0.3,0.35,0.4,0.4,0.45,0.5,0.6,0.75,0.9,0.95,0.85,0.5,0.2,0,0,0],
+    opening_hours: '24 Hours Open',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Delhi',
+  },
+
+  // BENGALURU
+  {
+    id: 'place_blr_lalbagh',
+    name: 'Lalbagh Botanical Garden',
+    category: 'nature',
+    description: '240-acre garden commissioned by Hyder Ali, housing famous 19th-century Glass House and ancient trees.',
+    lat: 12.9507,
+    lng: 77.5848,
+    indicative_price_inr: 30,
+    visit_minutes: 90,
+    step_free: 1,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0.2,0.5,0.65,0.5,0.3,0.2,0.2,0.2,0.25,0.35,0.5,0.7,0.75,0.5,0.1,0,0,0,0],
+    opening_hours: '06:00 - 19:00',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Bengaluru',
+  },
+  {
+    id: 'place_blr_vv_puram',
+    name: 'VV Puram Food Street (Thindi Beedi)',
+    category: 'street food',
+    description: 'Legendary vegetarian street food lane packed with dosas, paddus, Congress kadlekai, and rabdi kulfi.',
+    lat: 12.9525,
+    lng: 77.5772,
+    indicative_price_inr: 160,
+    visit_minutes: 60,
+    step_free: 1,
+    seating: 0,
+    restroom: 0,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0,0,0,0.1,0.2,0.2,0.2,0.3,0.5,0.75,0.95,0.95,0.8,0.3,0,0],
+    opening_hours: '17:30 - 23:30',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Bengaluru',
+  },
+
+  // JAIPUR
+  {
+    id: 'place_jpr_hawa_mahal',
+    name: 'Hawa Mahal (Palace of Winds)',
+    category: 'heritage',
+    description: 'Five-storey pink sandstone facade featuring 953 jharokha lattice windows designed for royal women.',
+    lat: 26.9239,
+    lng: 75.8267,
+    indicative_price_inr: 50,
+    visit_minutes: 60,
+    step_free: 0,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0.1,0.3,0.5,0.65,0.7,0.65,0.7,0.8,0.75,0.4,0.1,0,0,0,0,0],
+    opening_hours: '09:00 - 17:00',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Jaipur',
+  },
+  {
+    id: 'place_jpr_amber_fort',
+    name: 'Amber Palace & Maota Lake',
+    category: 'heritage',
+    description: 'Majestic Rajput-Mughal hilltop fortress with Sheesh Mahal mirror palace overlooking Maota Lake.',
+    lat: 26.9855,
+    lng: 75.8513,
+    indicative_price_inr: 100,
+    visit_minutes: 120,
+    step_free: 0,
+    seating: 1,
+    restroom: 1,
+    hourly_crowd: [0,0,0,0,0,0,0,0,0.2,0.5,0.75,0.85,0.8,0.75,0.8,0.85,0.7,0.3,0.1,0,0,0,0,0],
+    opening_hours: '08:00 - 17:30',
+    source_tag: 'Demo',
+    last_updated: '2026-10-09T08:00:00Z',
+    city: 'Jaipur',
+  },
+];
+
+const MULTI_CITY_HAZARDS = [
+  {
+    id: 'hazard_mum_dadar_waterlog',
+    title: 'Dadar TT Circle Monsoon Drainage Alert',
+    description: 'Submerged curb and slow crawling traffic around central junction under heavy showers.',
+    category: 'waterlogging',
+    lat: 19.0178,
+    lng: 72.8478,
+    radius_m: 200,
+    date: '2026-10-09',
+    verification_status: 'Demo',
+    confidence: 0.9,
+    source_tag: 'Demo',
+    created_at: '2026-10-09T07:30:00Z',
+    city: 'Mumbai',
+  },
+  {
+    id: 'hazard_del_ito_traffic',
+    title: 'ITO Chowk Peak Hour Chokepoint & Diversion',
+    description: 'Traffic congestion on Vikas Marg approach road towards central secretariats.',
+    category: 'traffic choke',
+    lat: 28.6292,
+    lng: 77.2415,
+    radius_m: 250,
+    date: '2026-10-09',
+    verification_status: 'Demo',
+    confidence: 0.88,
+    source_tag: 'Demo',
+    created_at: '2026-10-09T07:30:00Z',
+    city: 'Delhi',
+  },
+  {
+    id: 'hazard_blr_silk_board',
+    title: 'Silk Board Flyover Ramp Crawl',
+    description: 'Interchange bottleneck with slow-moving commercial vehicular traffic.',
+    category: 'traffic choke',
+    lat: 12.9172,
+    lng: 77.6228,
+    radius_m: 300,
+    date: '2026-10-09',
+    verification_status: 'Demo',
+    confidence: 0.95,
+    source_tag: 'Demo',
+    created_at: '2026-10-09T07:30:00Z',
+    city: 'Bengaluru',
+  },
+  {
+    id: 'hazard_jpr_johari_bazaar',
+    title: 'Johari Bazaar Heritage Restoration Restricting Lane',
+    description: 'Scaffolding along heritage bazaar corridor restricting vehicular passing.',
+    category: 'road work',
+    lat: 26.9200,
+    lng: 75.8240,
+    radius_m: 150,
+    date: '2026-10-09',
+    verification_status: 'Demo',
+    confidence: 0.85,
+    source_tag: 'Demo',
+    created_at: '2026-10-09T07:30:00Z',
+    city: 'Jaipur',
+  },
+];
+
 export function seedDatabase(): void {
-  const countRow = db.prepare('SELECT count(*) as count FROM places').get() as { count: number };
-  if (countRow && countRow.count > 0) {
-    logger.info('Database already seeded, skipping seed step.');
-    return;
-  }
-
-  logger.info('Seeding database with 30 Pune places and 6 simulated hazards...');
-
   const insertPlace = db.prepare(`
-    INSERT INTO places (
+    INSERT OR IGNORE INTO places (
       id, name, category, description, lat, lng,
       indicative_price_inr, visit_minutes, step_free, seating, restroom,
-      hourly_crowd, opening_hours, source_tag, last_updated
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      hourly_crowd, opening_hours, source_tag, last_updated, city
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const p of PUNE_PLACES) {
@@ -690,15 +957,37 @@ export function seedDatabase(): void {
       JSON.stringify(p.hourly_crowd),
       p.opening_hours,
       p.source_tag,
-      p.last_updated
+      p.last_updated,
+      'Pune'
+    );
+  }
+
+  for (const p of ADDITIONAL_CITY_PLACES) {
+    insertPlace.run(
+      p.id,
+      p.name,
+      p.category,
+      p.description,
+      p.lat,
+      p.lng,
+      p.indicative_price_inr,
+      p.visit_minutes,
+      p.step_free,
+      p.seating,
+      p.restroom,
+      JSON.stringify(p.hourly_crowd),
+      p.opening_hours,
+      p.source_tag,
+      p.last_updated,
+      p.city
     );
   }
 
   const insertHazard = db.prepare(`
-    INSERT INTO hazards (
+    INSERT OR IGNORE INTO hazards (
       id, title, description, category, lat, lng,
-      radius_m, date, verification_status, confidence, source_tag, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      radius_m, date, verification_status, confidence, source_tag, created_at, city
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const h of SEED_HAZARDS) {
@@ -714,7 +1003,26 @@ export function seedDatabase(): void {
       h.verification_status,
       h.confidence,
       h.source_tag,
-      h.created_at
+      h.created_at,
+      'Pune'
+    );
+  }
+
+  for (const h of MULTI_CITY_HAZARDS) {
+    insertHazard.run(
+      h.id,
+      h.title,
+      h.description,
+      h.category,
+      h.lat,
+      h.lng,
+      h.radius_m,
+      h.date,
+      h.verification_status,
+      h.confidence,
+      h.source_tag,
+      h.created_at,
+      h.city
     );
   }
 
@@ -737,5 +1045,6 @@ export function seedDatabase(): void {
     );
   }
 
-  logger.info(`Successfully seeded ${PUNE_PLACES.length} places and ${SEED_HAZARDS.length} hazards.`);
+  logger.info(`Successfully verified and seeded places across multiple cities.`);
 }
+

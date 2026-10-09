@@ -13,6 +13,7 @@ export const planConstraintsSchema = z.object({
   mood: z.string().default('curious'),
   group_size: z.number().int().min(1).max(50).default(1),
   start_location: z.string().default('FC Road, Deccan'),
+  city: z.string().default('Pune'),
 });
 
 export type PlanConstraints = z.infer<typeof planConstraintsSchema>;
@@ -134,6 +135,18 @@ export function localParseConstraints(input: string): PlanConstraints {
   else if (text.includes('baner') || text.includes('balewadi')) start_location = 'Baner';
   else if (text.includes('shaniwar wada') || text.includes('old city')) start_location = 'Shaniwar Peth';
 
+  // City detection
+  let city = 'Pune';
+  if (text.includes('mumbai')) city = 'Mumbai';
+  else if (text.includes('delhi')) city = 'Delhi';
+  else if (text.includes('bengaluru') || text.includes('bangalore')) city = 'Bengaluru';
+  else if (text.includes('jaipur')) city = 'Jaipur';
+  else if (text.includes('goa')) city = 'Goa';
+  else if (text.includes('london')) city = 'London';
+  else if (text.includes('tokyo')) city = 'Tokyo';
+  else if (text.includes('paris')) city = 'Paris';
+  else if (text.includes('new york')) city = 'New York';
+
   return {
     budget_inr,
     hours,
@@ -144,6 +157,7 @@ export function localParseConstraints(input: string): PlanConstraints {
     mood: text.includes('relax') ? 'peaceful' : 'exploratory',
     group_size,
     start_location,
+    city,
   };
 }
 

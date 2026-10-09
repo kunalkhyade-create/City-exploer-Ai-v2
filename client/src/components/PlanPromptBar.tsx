@@ -7,12 +7,14 @@ interface PlanPromptBarProps {
   onGeneratePlan: (prompt: string, customConstraints?: Partial<GeneratedPlan['constraintsUsed']>) => void;
   isLoading: boolean;
   aiSource: 'gemini' | 'local';
+  cityName?: string;
 }
 
 export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
   onGeneratePlan,
   isLoading,
   aiSource,
+  cityName = 'Pune',
 }) => {
   const { t } = useTranslation();
   const [promptText, setPromptText] = useState('');
@@ -25,7 +27,7 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
   const [travelMode, setTravelMode] = useState<'foot-walking' | 'cycling-regular' | 'driving-car'>('foot-walking');
   const [pace, setPace] = useState<'relaxed' | 'moderate' | 'packed'>('moderate');
   const [stepFree, setStepFree] = useState(false);
-  const [startLocation, setStartLocation] = useState('FC Road, Deccan');
+  const [startLocation, setStartLocation] = useState('Central Downtown');
 
   const handleQuickPrompt = (text: string) => {
     setPromptText(text);
@@ -63,11 +65,11 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
           </span>
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-            Intelligent Pune Engine
+            Intelligent {cityName} Engine
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-xs">
@@ -91,8 +93,8 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
           type="text"
           value={promptText}
           onChange={(e) => setPromptText(e.target.value)}
-          placeholder={t('prompt.placeholder')}
-          className="w-full bg-slate-900/90 text-slate-100 text-sm sm:text-base pl-4 pr-28 sm:pr-32 py-3.5 rounded-xl border border-slate-700 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none placeholder:text-slate-500 shadow-inner"
+          placeholder={`Explore ${cityName} by the hour... e.g. "Afternoon heritage walk under ₹400"`}
+          className="w-full bg-slate-900/90 text-slate-100 text-sm sm:text-base pl-4 pr-28 sm:pr-32 py-3.5 rounded-xl border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none placeholder:text-slate-500 shadow-inner"
         />
         <div className="absolute right-1.5 flex items-center gap-1">
           <button
@@ -100,7 +102,7 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
             onClick={() => setShowFilters(!showFilters)}
             className={`p-2 rounded-lg border transition ${
               showFilters
-                ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
+                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
                 : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
             }`}
             title="Toggle fine-tuning filters"
@@ -110,7 +112,7 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
           <button
             type="submit"
             disabled={isLoading || !promptText.trim()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs sm:text-sm shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <span className="inline-block animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
@@ -129,24 +131,24 @@ export const PlanPromptBar: React.FC<PlanPromptBarProps> = ({
         <span className="text-slate-400 font-medium">Quick Pulses:</span>
         <button
           type="button"
-          onClick={() => handleQuickPrompt('Heritage walk in Pune old city under 300 rupees')}
+          onClick={() => handleQuickPrompt(`Heritage walk in ${cityName} under ₹400`)}
           className="bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white px-2.5 py-1 rounded-full border border-slate-700 transition"
         >
-          {t('prompt.quick_1')}
+          {`Heritage walk in ${cityName}`}
         </button>
         <button
           type="button"
-          onClick={() => handleQuickPrompt('FC Road evening street food and cafe crawl for 500 rupees')}
+          onClick={() => handleQuickPrompt(`Evening street food crawl in ${cityName} for ₹500`)}
           className="bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white px-2.5 py-1 rounded-full border border-slate-700 transition"
         >
-          {t('prompt.quick_2')}
+          {`Evening food crawl in ${cityName}`}
         </button>
         <button
           type="button"
-          onClick={() => handleQuickPrompt('Peaceful afternoon nature trail and gardens in Pune')}
+          onClick={() => handleQuickPrompt(`Peaceful afternoon nature & gardens in ${cityName}`)}
           className="bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white px-2.5 py-1 rounded-full border border-slate-700 transition"
         >
-          {t('prompt.quick_3')}
+          {`Peaceful nature in ${cityName}`}
         </button>
       </div>
 

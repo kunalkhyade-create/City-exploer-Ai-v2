@@ -12,11 +12,16 @@ import {
   MapPin,
   Check,
   Split,
+  Sliders,
+  AlertTriangle,
+  ShieldCheck,
+  Leaf,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { GeneratedPlan, PlannedStop } from '../types';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { CrowdChart } from './CrowdChart';
+import { PulseBalanceCard } from './PulseBalanceCard';
 
 interface ItineraryViewProps {
   plan: GeneratedPlan;
@@ -24,6 +29,7 @@ interface ItineraryViewProps {
   onSavePlace: (placeId: string) => void;
   onShareWhatsApp: () => void;
   onSelectStop: (stop: PlannedStop) => void;
+  onOpenWhatIf?: () => void;
   isReplanning?: boolean;
 }
 
@@ -33,6 +39,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
   onSavePlace,
   onShareWhatsApp,
   onSelectStop,
+  onOpenWhatIf,
   isReplanning = false,
 }) => {
   const { t } = useTranslation();
@@ -80,7 +87,7 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
           </div>
         </div>
 
-        {/* Replan Controls Bar (Plan B) */}
+        {/* Replan Controls & What-If Simulator Bar */}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-400 font-medium flex items-center gap-1">
@@ -90,24 +97,53 @@ export const ItineraryView: React.FC<ItineraryViewProps> = ({
             <select
               value={replanStrategy}
               onChange={(e) => setReplanStrategy(e.target.value as any)}
-              className="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-orange-500"
+              className="bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-cyan-500"
             >
               <option value="avoid_crowds">Avoid Peak Crowds</option>
               <option value="budget_saver">Budget Saver Alternative</option>
               <option value="alternative_stops">Explore Hidden Gems</option>
             </select>
+            <button
+              onClick={() => onReplan(replanStrategy)}
+              disabled={isReplanning}
+              className="flex items-center gap-1 px-3 py-1 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded-lg transition disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isReplanning ? 'animate-spin' : ''}`} />
+              <span>Generate Plan B</span>
+            </button>
           </div>
 
-          <button
-            onClick={() => onReplan(replanStrategy)}
-            disabled={isReplanning}
-            className="flex items-center gap-1 px-3 py-1 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded-lg transition disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isReplanning ? 'animate-spin' : ''}`} />
-            <span>Generate Plan B</span>
-          </button>
+          {onOpenWhatIf && (
+            <button
+              type="button"
+              onClick={onOpenWhatIf}
+              className="flex items-center gap-1.5 px-3 py-1 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 text-xs font-semibold rounded-lg transition shadow-sm"
+              title="Compare budget, time, or transit scenarios before applying"
+            >
+              <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+              <span>What-If Simulator</span>
+            </button>
+          )}
         </div>
+
+        {/* Responsible Exploration Advisory if crowded stops detected */}
+        {plan.stops.some(s => s.place.hourly_crowd.some(c => c >= 75)) && (
+          <div className="mt-3 p-3 rounded-xl bg-teal-950/40 border border-teal-500/30 flex items-start gap-2.5 text-xs text-teal-200">
+            <Leaf className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-teal-300 font-bold block mb-0.5">
+                Responsible Exploration Notice
+              </strong>
+              <p className="text-[11px] text-teal-200/90 leading-relaxed">
+                Some locations in this itinerary experience peak congestion during selected hours. CityPulse AI recommends prioritizing off-peak visits or using <em>Plan B: Avoid Peak Crowds</em> to disperse urban pressure and support local independent businesses.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Pulse Balance Index Dashboard */}
+      <PulseBalanceCard plan={plan} />
 
       {/* Planned Stops Timeline */}
       <div className="space-y-3">

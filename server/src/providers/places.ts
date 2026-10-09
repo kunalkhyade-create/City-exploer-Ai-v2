@@ -16,6 +16,7 @@ export interface Place {
   opening_hours: string | null;
   source_tag: string;
   last_updated: string;
+  city?: string;
 }
 
 export interface PlaceFilter {
@@ -23,6 +24,7 @@ export interface PlaceFilter {
   category?: string;
   step_free?: boolean;
   hour?: number;
+  city?: string;
   lat?: number;
   lng?: number;
   page?: number;
@@ -42,6 +44,11 @@ export const placesProvider = {
     if (filter.category && filter.category !== 'all') {
       query += ' AND category = ?';
       params.push(filter.category);
+    }
+
+    if (filter.city && filter.city !== 'all') {
+      query += ' AND LOWER(city) = LOWER(?)';
+      params.push(filter.city);
     }
 
     if (filter.step_free) {
@@ -76,6 +83,7 @@ export const placesProvider = {
       opening_hours: string | null;
       source_tag: string;
       last_updated: string;
+      city?: string;
     }>;
 
     const items: Place[] = rows.map(r => ({
@@ -84,6 +92,7 @@ export const placesProvider = {
       seating: Boolean(r.seating),
       restroom: Boolean(r.restroom),
       hourly_crowd: JSON.parse(r.hourly_crowd),
+      city: r.city || 'Pune',
     }));
 
     return { items, total, page, pageSize };
@@ -106,6 +115,7 @@ export const placesProvider = {
       opening_hours: string | null;
       source_tag: string;
       last_updated: string;
+      city?: string;
     } | undefined;
 
     if (!r) return null;
@@ -116,6 +126,7 @@ export const placesProvider = {
       seating: Boolean(r.seating),
       restroom: Boolean(r.restroom),
       hourly_crowd: JSON.parse(r.hourly_crowd),
+      city: r.city || 'Pune',
     };
   },
 };
